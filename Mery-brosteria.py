@@ -12,10 +12,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Zona horaria exacta de Bolivia (La Paz / Cochabamba)
+# Zona horaria exacta de Bolivia
 bolivia_tz = pytz.timezone('America/La_Paz')
 
-# Inicializar Base de Datos SQLite (Persistente 100% para que no se borre nunca)
+# Inicializar Base de Datos SQLite (Persistente 100%)
 def init_db():
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -39,7 +39,6 @@ init_db()
 def registrar_venta_db(cliente, producto, precio, cantidad):
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
-    # Fecha y hora sincronizadas estrictamente con Bolivia
     fecha = datetime.now(bolivia_tz).strftime("%Y-%m-%d %H:%M:%S")
     total = precio * cantidad
     cursor.execute("INSERT INTO ventas (fecha, cliente, producto, precio, cantidad, total) VALUES (?, ?, ?, ?, ?, ?)",
@@ -67,9 +66,11 @@ def reiniciar_ventas_db():
     conn.commit()
     conn.close()
 
-# Menú oficial del negocio con precios exactos
+# Menú oficial con alitas separadas y precios en Bs
 MENU_ITEMS = {
-    "Alitas bbq, miel mostaza y picante": 18.0,
+    "Alitas BBQ": 18.0,
+    "Alitas Miel Mostaza": 18.0,
+    "Alitas Picante": 18.0,
     "Pollo a la broster": 15.0,
     "Pollo al spiedo": 15.0,
     "Pollo escolar": 13.0,
@@ -79,7 +80,7 @@ MENU_ITEMS = {
     "Jugo del valle": 15.0
 }
 
-# Estilos CSS personalizados para que se vea muy bonito y moderno
+# Estilos CSS personalizados para el ticket y la interfaz
 st.markdown('''
     <style>
     .main { background-color: #f8f9fa; }
@@ -102,11 +103,12 @@ st.markdown('''
         border: 2px dashed #ff4b4b;
         font-family: monospace;
         margin-top: 20px;
+        color: #000000;
     }
     </style>
 ''', unsafe_allow_html=True)
 
-# Título Principal con el nombre del negocio
+# Título Principal
 st.title("🍗 Brostería Doña Mery - Sistema de Ventas y Tickets")
 st.markdown("---")
 
@@ -148,7 +150,7 @@ if menu_opcion == "🛒 Registrar Venta y Tickets":
             
             st.success(f"¡Venta registrada con éxito! Ticket #{ultimo_id} generado.")
             
-            # Mostrar Ticket Bonito en Pantalla con el nombre de la Brostería
+            # Mostrar Ticket Bonito en Pantalla
             st.markdown(f"""
             <div class="ticket-box">
                 <h3 style="text-align: center; color: #ff4b4b; margin: 0;">BROSTERÍA DOÑA MERY</h3>
@@ -163,6 +165,8 @@ if menu_opcion == "🛒 Registrar Venta y Tickets":
                 <p style="text-align: center; color: #666; font-size: 0.9em;">¡Gracias por su preferencia, vuelva pronto!</p>
             </div>
             """, unsafe_allow_html=True)
+            
+            st.info("💡 **Tip para imprimir:** Presiona `Ctrl + P` (en computadora) o usa el menú de compartir de tu celular para imprimir este ticket en tu impresora térmica.")
 
 # ----------------------------------------------------
 # 2. DASHBOARD Y KPIS
@@ -173,6 +177,7 @@ elif menu_opcion == "📊 Dashboard y KPIs":
     if df_ventas.empty:
         st.warning("⚠️ Todavía no hay ventas registradas para mostrar métricas.")
     else:
+        df_ventas['total'] = pd.to_numeric(df_ventas['total'], errors='coerce')
         total_ingresos = df_ventas['total'].sum()
         total_ventas_realizadas = len(df_ventas)
         plato_favorito = df_ventas['producto'].mode()[0] if not df_ventas.empty else "N/A"
@@ -183,9 +188,12 @@ elif menu_opcion == "📊 Dashboard y KPIs":
         kpi3.metric("🏆 Producto Más Vendido", f"{plato_favorito}")
         
         st.markdown("---")
-        st.subheader("📈 Ventas por Producto")
+        st.subheader("📈 Ventas Totales por Producto (Bs)")
+        
         ventas_por_producto = df_ventas.groupby('producto')['total'].sum().reset_index()
-        st.bar_chart(ventas_por_producto.set_index('producto'))
+        ventas_por_producto['total'] = ventas_por_producto['total'].round(2)
+        
+        st.bar_chart(ventas_por_producto.set_index('producto')['total'])
 
 # ----------------------------------------------------
 # 3. HISTORIAL Y ADMINISTRACIÓN (ELIMINAR POR ID / REINICIAR)
@@ -231,7 +239,7 @@ elif menu_opcion == "📥 Descargar Excel":
     if df_ventas.empty:
         st.warning("⚠️ No hay datos para exportar.")
     else:
-        st.markdown("Haz clic en el botón de abajo para descargar tu reporte completo con todas las ventas registradas de forma permanente.")
+        st.markdown("Haz clic en el botón de abajo para descargar tu reporte completo con todas las ventas registradas.")
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
