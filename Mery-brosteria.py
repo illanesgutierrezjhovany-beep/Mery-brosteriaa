@@ -80,7 +80,7 @@ MENU_ITEMS = {
     "Jugo del valle": 15.0
 }
 
-# Estilos CSS personalizados para el ticket y la interfaz
+# Estilos CSS personalizados
 st.markdown('''
     <style>
     .main { background-color: #f8f9fa; }
@@ -95,35 +95,25 @@ st.markdown('''
         background-color: #e03e3e;
         color: white;
     }
-    .ticket-box {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        border: 2px dashed #ff4b4b;
-        font-family: monospace;
-        margin-top: 20px;
-        color: #000000;
-    }
     </style>
 ''', unsafe_allow_html=True)
 
 # Título Principal
-st.title("🍗 Brostería Doña Mery - Sistema de Ventas y Tickets")
+st.title("🍗 Brostería Doña Mery - Sistema de Ventas")
 st.markdown("---")
 
 # Barra Lateral (Navegación)
 menu_opcion = st.sidebar.selectbox(
     "Menú de Navegación",
-    ["🛒 Registrar Venta y Tickets", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel"]
+    ["🛒 Registrar Venta", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel"]
 )
 
 df_ventas = obtener_ventas()
 
 # ----------------------------------------------------
-# 1. REGISTRAR VENTA Y TICKETS
+# 1. REGISTRAR VENTA DIRECTA
 # ----------------------------------------------------
-if menu_opcion == "🛒 Registrar Venta y Tickets":
+if menu_opcion == "🛒 Registrar Venta":
     st.header("🛒 Registrar Nueva Venta")
     
     col1, col2 = st.columns(2)
@@ -139,34 +129,12 @@ if menu_opcion == "🛒 Registrar Venta y Tickets":
         total_pagar = precio_unitario * cantidad
         st.success(f"Total a Pagar: **{total_pagar:.2f} Bs**")
     
-    if st.button("🚀 Registrar Venta y Emitir Ticket"):
+    if st.button("🚀 Registrar Venta"):
         if not cliente.strip():
             st.error("⚠️ Por favor ingrese el nombre del cliente.")
         else:
             registrar_venta_db(cliente.strip(), producto_seleccionado, precio_unitario, cantidad)
-            df_actualizado = obtener_ventas()
-            ultimo_id = df_actualizado.iloc[-1]['id'] if not df_actualizado.empty else 1
-            fecha_actual = datetime.now(bolivia_tz).strftime("%Y-%m-%d %H:%M:%S")
-            
-            st.success(f"¡Venta registrada con éxito! Ticket #{ultimo_id} generado.")
-            
-            # Mostrar Ticket Bonito en Pantalla
-            st.markdown(f"""
-            <div class="ticket-box">
-                <h3 style="text-align: center; color: #ff4b4b; margin: 0;">BROSTERÍA DOÑA MERY</h3>
-                <p style="text-align: center; margin: 2px 0; font-size: 0.85em; color: #555;">¡El mejor sabor tradicional!</p>
-                <p style="text-align: center; margin: 5px 0;">------------------------------------------------</p>
-                <p><b>Ticket N°:</b> {ultimo_id}</p>
-                <p><b>Fecha y Hora:</b> {fecha_actual}</p>
-                <p><b>Cliente:</b> {cliente.strip().upper()}</p>
-                <p><b>Producto:</b> {producto_seleccionado} (x{cantidad})</p>
-                <p style="font-size: 1.2em; color: #333;"><b>Total Pagado: {total_pagar:.2f} Bs</b></p>
-                <p style="text-align: center; margin: 5px 0;">------------------------------------------------</p>
-                <p style="text-align: center; color: #666; font-size: 0.9em;">¡Gracias por su preferencia, vuelva pronto!</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.info("💡 **Tip para imprimir:** Presiona `Ctrl + P` (en computadora) o usa el menú de compartir de tu celular para imprimir este ticket en tu impresora térmica.")
+            st.success(f"✅ ¡Venta registrada con éxito para el cliente **{cliente.strip().upper()}**! (Total: {total_pagar:.2f} Bs)")
 
 # ----------------------------------------------------
 # 2. DASHBOARD Y KPIS
@@ -184,7 +152,7 @@ elif menu_opcion == "📊 Dashboard y KPIs":
         
         kpi1, kpi2, kpi3 = st.columns(3)
         kpi1.metric("💰 Ingresos Totales", f"{total_ingresos:.2f} Bs")
-        kpi2.metric("🧾 Tickets Emitidos", f"{total_ventas_realizadas}")
+        kpi2.metric("🧾 Ventas Registradas", f"{total_ventas_realizadas}")
         kpi3.metric("🏆 Producto Más Vendido", f"{plato_favorito}")
         
         st.markdown("---")
@@ -199,7 +167,7 @@ elif menu_opcion == "📊 Dashboard y KPIs":
 # 3. HISTORIAL Y ADMINISTRACIÓN (ELIMINAR POR ID / REINICIAR)
 # ----------------------------------------------------
 elif menu_opcion == "📋 Historial y Administración":
-    st.header("📋 Historial Completo y Gestión de Tickets")
+    st.header("📋 Historial Completo y Gestión de Ventas")
     
     if df_ventas.empty:
         st.warning("⚠️ No hay registros en la base de datos.")
@@ -213,21 +181,21 @@ elif menu_opcion == "📋 Historial y Administración":
         
         with col_del1:
             st.markdown("#### ❌ Eliminar Venta por ID")
-            id_a_borrar = st.number_input("Ingrese el ID del Ticket a eliminar", min_value=1, step=1, value=1)
-            if st.button("Eliminar Ticket Específico"):
+            id_a_borrar = st.number_input("Ingrese el ID de la venta a eliminar", min_value=1, step=1, value=1)
+            if st.button("Eliminar Venta Específica"):
                 if id_a_borrar in df_ventas['id'].values:
                     eliminar_venta_db(id_a_borrar)
-                    st.success(f"✅ Ticket #{id_a_borrar} eliminado correctamente.")
+                    st.success(f"✅ Venta con ID #{id_a_borrar} eliminada correctamente.")
                     st.rerun()
                 else:
                     st.error("❌ El ID ingresado no existe.")
                     
         with col_del2:
-            st.markdown("#### ⚠️ Zona de Peligro (Reinicio Total)")
-            st.warning("Esto borrará todo el historial acumulado permanentemente.")
-            if st.button("🚨 Reiniciar Todas las Ventas"):
+            st.markdown("#### ⚠️ Zona de Cierre de Día (Reinicio)")
+            st.warning("Usa esta opción al finalizar el día para limpiar las ventas si lo deseas.")
+            if st.button("🚨 Reiniciar Todas las Ventas del Día"):
                 reiniciar_ventas_db()
-                st.success("✅ Se han reiniciado todas las ventas del sistema.")
+                st.success("✅ Se han reiniciado todas las ventas correctamente.")
                 st.rerun()
 
 # ----------------------------------------------------
@@ -239,7 +207,7 @@ elif menu_opcion == "📥 Descargar Excel":
     if df_ventas.empty:
         st.warning("⚠️ No hay datos para exportar.")
     else:
-        st.markdown("Haz clic en el botón de abajo para descargar tu reporte completo con todas las ventas registradas.")
+        st.markdown("Haz clic en el botón de abajo para descargar tu reporte completo con todas las ventas.")
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
