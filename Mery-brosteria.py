@@ -23,7 +23,6 @@ def init_db():
         CREATE TABLE IF NOT EXISTS ventas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fecha TEXT,
-            cliente TEXT,
             producto TEXT,
             precio REAL,
             cantidad INTEGER,
@@ -35,14 +34,14 @@ def init_db():
 
 init_db()
 
-# Funciones de base de datos
-def registrar_venta_db(cliente, producto, precio, cantidad):
+# Funciones de base de datos (sin campo cliente)
+def registrar_venta_db(producto, precio, cantidad):
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
     fecha = datetime.now(bolivia_tz).strftime("%Y-%m-%d %H:%M:%S")
     total = precio * cantidad
-    cursor.execute("INSERT INTO ventas (fecha, cliente, producto, precio, cantidad, total) VALUES (?, ?, ?, ?, ?, ?)",
-                   (fecha, cliente, producto, precio, cantidad, total))
+    cursor.execute("INSERT INTO ventas (fecha, producto, precio, cantidad, total) VALUES (?, ?, ?, ?, ?)",
+                   (fecha, producto, precio, cantidad, total))
     conn.commit()
     conn.close()
 
@@ -111,7 +110,7 @@ menu_opcion = st.sidebar.selectbox(
 df_ventas = obtener_ventas()
 
 # ----------------------------------------------------
-# 1. REGISTRAR VENTA DIRECTA
+# 1. REGISTRAR VENTA DIRECTA (Sin nombre de cliente)
 # ----------------------------------------------------
 if menu_opcion == "🛒 Registrar Venta":
     st.header("🛒 Registrar Nueva Venta")
@@ -119,7 +118,6 @@ if menu_opcion == "🛒 Registrar Venta":
     col1, col2 = st.columns(2)
     
     with col1:
-        cliente = st.text_input("Nombre del Cliente", placeholder="Ej. Carlos o Maldonado")
         producto_seleccionado = st.selectbox("Seleccione el Plato o Bebida", list(MENU_ITEMS.keys()))
         precio_unitario = MENU_ITEMS[producto_seleccionado]
         st.info(f"Precio Unitario: **{precio_unitario:.2f} Bs**")
@@ -130,14 +128,11 @@ if menu_opcion == "🛒 Registrar Venta":
         st.success(f"Total a Pagar: **{total_pagar:.2f} Bs**")
     
     if st.button("🚀 Registrar Venta"):
-        if not cliente.strip():
-            st.error("⚠️ Por favor ingrese el nombre del cliente.")
-        else:
-            registrar_venta_db(cliente.strip(), producto_seleccionado, precio_unitario, cantidad)
-            st.success(f"✅ ¡Venta registrada con éxito para el cliente **{cliente.strip().upper()}**! (Total: {total_pagar:.2f} Bs)")
+        registrar_venta_db(producto_seleccionado, precio_unitario, cantidad)
+        st.success(f"✅ ¡Venta registrada con éxito! (**{producto_seleccionado}** x{cantidad} = **{total_pagar:.2f} Bs**)")
 
 # ----------------------------------------------------
-# 2. DASHBOARD Y KPIS (Con gráfico 100% estable)
+# 2. DASHBOARD Y KPIS (Con reporte visual estable sin distorsión)
 # ----------------------------------------------------
 elif menu_opcion == "📊 Dashboard y KPIs":
     st.header("📊 Dashboard General - Brostería Doña Mery")
@@ -156,15 +151,20 @@ elif menu_opcion == "📊 Dashboard y KPIs":
         kpi3.metric("🏆 Producto Más Vendido", f"{plato_favorito}")
         
         st.markdown("---")
-        st.subheader("📈 Ventas Totales por Producto (Bs)")
+        st.subheader("📈 Resumen de Ventas por Producto (Bs)")
         
-        # Agrupar y ordenar para que el gráfico permanezca fijo y nítido
+        # Agrupar ordenadamente
         ventas_por_producto = df_ventas.groupby('producto')['total'].sum().reset_index()
         ventas_por_producto['total'] = ventas_por_producto['total'].round(2)
-        ventas_por_producto = ventas_por_producto.set_index('producto')
+        ventas_por_producto = ventas_por_producto.sort_values(by='total', ascending=False)
         
-        # Gráfico estable con dimensiones fijas para evitar distorsiones al tocarlo
-        st.bar_chart(ventas_por_producto, use_container_width=True)
+        # Mostrar tabla métrica fija al lado del gráfico para evitar saltos o deformaciones con el cursor
+        col_g1, col_g2 = st.columns([2, 1])
+        with col_g1:
+            st.bar_chart(ventas_por_producto.set_index('producto')['total'], use_container_width=True)
+        with col_g2:
+            st.markdown("**Totales por ítem:**")
+            st.dataframe(ventas_por_producto.set_index('producto'), use_container_width=True)
 
 # ----------------------------------------------------
 # 3. HISTORIAL Y ADMINISTRACIÓN
