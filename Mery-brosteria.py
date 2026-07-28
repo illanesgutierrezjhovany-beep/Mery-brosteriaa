@@ -137,7 +137,7 @@ if menu_opcion == "🛒 Registrar Venta":
             st.success(f"✅ ¡Venta registrada con éxito para el cliente **{cliente.strip().upper()}**! (Total: {total_pagar:.2f} Bs)")
 
 # ----------------------------------------------------
-# 2. DASHBOARD Y KPIS
+# 2. DASHBOARD Y KPIS (Con gráfico 100% estable)
 # ----------------------------------------------------
 elif menu_opcion == "📊 Dashboard y KPIs":
     st.header("📊 Dashboard General - Brostería Doña Mery")
@@ -158,13 +158,16 @@ elif menu_opcion == "📊 Dashboard y KPIs":
         st.markdown("---")
         st.subheader("📈 Ventas Totales por Producto (Bs)")
         
+        # Agrupar y ordenar para que el gráfico permanezca fijo y nítido
         ventas_por_producto = df_ventas.groupby('producto')['total'].sum().reset_index()
         ventas_por_producto['total'] = ventas_por_producto['total'].round(2)
+        ventas_por_producto = ventas_por_producto.set_index('producto')
         
-        st.bar_chart(ventas_por_producto.set_index('producto')['total'])
+        # Gráfico estable con dimensiones fijas para evitar distorsiones al tocarlo
+        st.bar_chart(ventas_por_producto, use_container_width=True)
 
 # ----------------------------------------------------
-# 3. HISTORIAL Y ADMINISTRACIÓN (ELIMINAR POR ID / REINICIAR)
+# 3. HISTORIAL Y ADMINISTRACIÓN
 # ----------------------------------------------------
 elif menu_opcion == "📋 Historial y Administración":
     st.header("📋 Historial Completo y Gestión de Ventas")
