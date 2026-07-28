@@ -1,16 +1,20 @@
-
 import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import datetime
 import pytz
 import io
+
+
 st.set_page_config(
     page_title="Sistema de Ventas - Brostería Doña Mery",
     page_icon="🍗",
     layout="wide"
 )
+
+
 bolivia_tz = pytz.timezone('America/La_Paz')
+
 
 def init_db():
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
@@ -29,6 +33,7 @@ def init_db():
     conn.close()
 
 init_db()
+
 def registrar_venta_db(producto, precio, cantidad):
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -58,6 +63,8 @@ def reiniciar_ventas_db():
     cursor.execute("DELETE FROM ventas")
     conn.commit()
     conn.close()
+
+
 MENU_ITEMS = {
     "Alitas BBQ": 18.0,
     "Alitas Miel Mostaza": 18.0,
@@ -70,6 +77,7 @@ MENU_ITEMS = {
     "Refresco en vaso": 2.50,
     "Jugo del valle": 15.0
 }
+
 
 st.markdown('''
     <style>
@@ -88,6 +96,7 @@ st.markdown('''
     </style>
 ''', unsafe_allow_html=True)
 
+
 st.title("🍗 Brostería Doña Mery - Sistema de Ventas")
 st.markdown("---")
 
@@ -96,7 +105,9 @@ menu_opcion = st.sidebar.selectbox(
     ["🛒 Registrar Venta", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel Profesional"]
 )
 
-df_ventas = obtener_ventas(
+df_ventas = obtener_ventas()
+
+
 if menu_opcion == "🛒 Registrar Venta":
     st.header("🛒 Registrar Nueva Venta")
     
@@ -115,6 +126,7 @@ if menu_opcion == "🛒 Registrar Venta":
     if st.button("🚀 Registrar Venta"):
         registrar_venta_db(producto_seleccionado, precio_unitario, cantidad)
         st.success(f"✅ ¡Venta registrada con éxito! (**{producto_seleccionado}** x{cantidad} = **{total_pagar:.2f} Bs**)")
+
 
 elif menu_opcion == "📊 Dashboard y KPIs":
     st.header("📊 Dashboard General - Brostería Doña Mery")
@@ -178,6 +190,7 @@ elif menu_opcion == "📋 Historial y Administración":
                 st.success("✅ Se han reiniciado todas las ventas correctamente.")
                 st.rerun()
 
+
 elif menu_opcion == "📥 Descargar Excel Profesional":
     st.header("📥 Descargar Reporte de Ventas Avanzado en Excel")
     
@@ -188,17 +201,20 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            
+           
             df_ventas.to_excel(writer, index=False, sheet_name='Detalle_Ventas')
             
-          
+            
             resumen_prod = df_ventas.groupby('producto').agg(
                 Cantidad_Total=('cantidad', 'sum'),
                 Ingresos_Totales=('total', 'sum')
             ).reset_index()
             resumen_prod['Ingresos_Totales'] = resumen_prod['Ingresos_Totales'].round(2)
             resumen_prod.to_excel(writer, index=False, sheet_name='Resumen_Por_Producto')
+            
+        
             workbook = writer.book
+            
             ws_resumen = workbook.create_sheet(title="Cierre_Total")
             ws_resumen.append(["BROSTERÍA DOÑA MERY - CIERRE DE INGRESOS"])
             ws_resumen.append([])
@@ -206,7 +222,8 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             total_dia = df_ventas['total'].sum()
             ws_resumen.append(["Ingresos Totales del Día", round(total_dia, 2)])
             ws_resumen.append(["Total Tickets / Ventas", len(df_ventas)])
-            
+
+         
             from openpyxl.chart import BarChart, Reference
             chart = BarChart()
             chart.type = "col"
@@ -215,6 +232,7 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             chart.y_axis.title = "Bolivianos (Bs)"
             chart.x_axis.title = "Productos"
 
+
             ws_prod_ref = workbook['Resumen_Por_Producto']
             data = Reference(ws_prod_ref, min_col=2, min_row=1, max_row=len(resumen_prod) + 1)
             cats = Reference(ws_prod_ref, min_col=1, min_row=2, max_row=len(resumen_prod) + 1)
@@ -222,7 +240,7 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             chart.add_data(data, titles_from_data=True)
             chart.set_categories(cats)
             
-           
+
             ws_resumen.add_chart(chart, "D2")
 
         excel_data = output.getvalue()
