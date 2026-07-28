@@ -5,18 +5,13 @@ import sqlite3
 from datetime import datetime
 import pytz
 import io
-
-# Configuración de la página
 st.set_page_config(
     page_title="Sistema de Ventas - Brostería Doña Mery",
     page_icon="🍗",
     layout="wide"
 )
-
-# Zona horaria exacta de Bolivia
 bolivia_tz = pytz.timezone('America/La_Paz')
 
-# Inicializar Base de Datos SQLite (Persistente 100%)
 def init_db():
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -34,8 +29,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-# Funciones de base de datos
 def registrar_venta_db(producto, precio, cantidad):
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -65,8 +58,6 @@ def reiniciar_ventas_db():
     cursor.execute("DELETE FROM ventas")
     conn.commit()
     conn.close()
-
-# Menú oficial con alitas separadas y precios en Bs
 MENU_ITEMS = {
     "Alitas BBQ": 18.0,
     "Alitas Miel Mostaza": 18.0,
@@ -80,7 +71,6 @@ MENU_ITEMS = {
     "Jugo del valle": 15.0
 }
 
-# Estilos CSS personalizados
 st.markdown('''
     <style>
     .main { background-color: #f8f9fa; }
@@ -98,21 +88,15 @@ st.markdown('''
     </style>
 ''', unsafe_allow_html=True)
 
-# Título Principal
 st.title("🍗 Brostería Doña Mery - Sistema de Ventas")
 st.markdown("---")
 
-# Barra Lateral (Navegación)
 menu_opcion = st.sidebar.selectbox(
     "Menú de Navegación",
     ["🛒 Registrar Venta", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel Profesional"]
 )
 
-df_ventas = obtener_ventas()
-
-# ----------------------------------------------------
-# 1. REGISTRAR VENTA DIRECTA
-# ----------------------------------------------------
+df_ventas = obtener_ventas(
 if menu_opcion == "🛒 Registrar Venta":
     st.header("🛒 Registrar Nueva Venta")
     
@@ -132,9 +116,6 @@ if menu_opcion == "🛒 Registrar Venta":
         registrar_venta_db(producto_seleccionado, precio_unitario, cantidad)
         st.success(f"✅ ¡Venta registrada con éxito! (**{producto_seleccionado}** x{cantidad} = **{total_pagar:.2f} Bs**)")
 
-# ----------------------------------------------------
-# 2. DASHBOARD Y KPIS
-# ----------------------------------------------------
 elif menu_opcion == "📊 Dashboard y KPIs":
     st.header("📊 Dashboard General - Brostería Doña Mery")
     
@@ -165,9 +146,6 @@ elif menu_opcion == "📊 Dashboard y KPIs":
             st.markdown("**Totales por ítem:**")
             st.dataframe(ventas_por_producto.set_index('producto'), use_container_width=True)
 
-# ----------------------------------------------------
-# 3. HISTORIAL Y ADMINISTRACIÓN
-# ----------------------------------------------------
 elif menu_opcion == "📋 Historial y Administración":
     st.header("📋 Historial Completo y Gestión de Ventas")
     
@@ -200,9 +178,6 @@ elif menu_opcion == "📋 Historial y Administración":
                 st.success("✅ Se han reiniciado todas las ventas correctamente.")
                 st.rerun()
 
-# ----------------------------------------------------
-# 4. DESCARGAR EXCEL PROFESIONAL (Con Tablas Resumen y Gráfico Integrado)
-# ----------------------------------------------------
 elif menu_opcion == "📥 Descargar Excel Profesional":
     st.header("📥 Descargar Reporte de Ventas Avanzado en Excel")
     
@@ -213,21 +188,17 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # 1. Hoja principal de detalle de ventas
+            
             df_ventas.to_excel(writer, index=False, sheet_name='Detalle_Ventas')
             
-            # 2. Tabla resumen por producto con ingresos totales
+          
             resumen_prod = df_ventas.groupby('producto').agg(
                 Cantidad_Total=('cantidad', 'sum'),
                 Ingresos_Totales=('total', 'sum')
             ).reset_index()
             resumen_prod['Ingresos_Totales'] = resumen_prod['Ingresos_Totales'].round(2)
             resumen_prod.to_excel(writer, index=False, sheet_name='Resumen_Por_Producto')
-            
-            # Obtener workbook para insertar el gráfico nativo de Excel y formato profesional
             workbook = writer.book
-            
-            # Crear una hoja de resumen ejecutivo con los ingresos totales del día
             ws_resumen = workbook.create_sheet(title="Cierre_Total")
             ws_resumen.append(["BROSTERÍA DOÑA MERY - CIERRE DE INGRESOS"])
             ws_resumen.append([])
@@ -235,8 +206,7 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             total_dia = df_ventas['total'].sum()
             ws_resumen.append(["Ingresos Totales del Día", round(total_dia, 2)])
             ws_resumen.append(["Total Tickets / Ventas", len(df_ventas)])
-
-            # Agregar un gráfico de barras integrado directamente en Excel
+            
             from openpyxl.chart import BarChart, Reference
             chart = BarChart()
             chart.type = "col"
@@ -245,7 +215,6 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             chart.y_axis.title = "Bolivianos (Bs)"
             chart.x_axis.title = "Productos"
 
-            # Referencias para el gráfico basadas en la hoja 'Resumen_Por_Producto'
             ws_prod_ref = workbook['Resumen_Por_Producto']
             data = Reference(ws_prod_ref, min_col=2, min_row=1, max_row=len(resumen_prod) + 1)
             cats = Reference(ws_prod_ref, min_col=1, min_row=2, max_row=len(resumen_prod) + 1)
@@ -253,7 +222,7 @@ elif menu_opcion == "📥 Descargar Excel Profesional":
             chart.add_data(data, titles_from_data=True)
             chart.set_categories(cats)
             
-            # Añadir el gráfico a la hoja de resumen ejecutivo
+           
             ws_resumen.add_chart(chart, "D2")
 
         excel_data = output.getvalue()
