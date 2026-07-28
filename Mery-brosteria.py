@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -34,7 +35,7 @@ def init_db():
 
 init_db()
 
-# Funciones de base de datos (sin campo cliente)
+# Funciones de base de datos
 def registrar_venta_db(producto, precio, cantidad):
     conn = sqlite3.connect('ventas_pollo.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -104,13 +105,13 @@ st.markdown("---")
 # Barra Lateral (Navegación)
 menu_opcion = st.sidebar.selectbox(
     "Menú de Navegación",
-    ["🛒 Registrar Venta", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel"]
+    ["🛒 Registrar Venta", "📊 Dashboard y KPIs", "📋 Historial y Administración", "📥 Descargar Excel Profesional"]
 )
 
 df_ventas = obtener_ventas()
 
 # ----------------------------------------------------
-# 1. REGISTRAR VENTA DIRECTA (Sin nombre de cliente)
+# 1. REGISTRAR VENTA DIRECTA
 # ----------------------------------------------------
 if menu_opcion == "🛒 Registrar Venta":
     st.header("🛒 Registrar Nueva Venta")
@@ -132,7 +133,7 @@ if menu_opcion == "🛒 Registrar Venta":
         st.success(f"✅ ¡Venta registrada con éxito! (**{producto_seleccionado}** x{cantidad} = **{total_pagar:.2f} Bs**)")
 
 # ----------------------------------------------------
-# 2. DASHBOARD Y KPIS (Con reporte visual estable sin distorsión)
+# 2. DASHBOARD Y KPIS
 # ----------------------------------------------------
 elif menu_opcion == "📊 Dashboard y KPIs":
     st.header("📊 Dashboard General - Brostería Doña Mery")
@@ -153,12 +154,10 @@ elif menu_opcion == "📊 Dashboard y KPIs":
         st.markdown("---")
         st.subheader("📈 Resumen de Ventas por Producto (Bs)")
         
-        # Agrupar ordenadamente
         ventas_por_producto = df_ventas.groupby('producto')['total'].sum().reset_index()
         ventas_por_producto['total'] = ventas_por_producto['total'].round(2)
         ventas_por_producto = ventas_por_producto.sort_values(by='total', ascending=False)
         
-        # Mostrar tabla métrica fija al lado del gráfico para evitar saltos o deformaciones con el cursor
         col_g1, col_g2 = st.columns([2, 1])
         with col_g1:
             st.bar_chart(ventas_por_producto.set_index('producto')['total'], use_container_width=True)
@@ -202,24 +201,66 @@ elif menu_opcion == "📋 Historial y Administración":
                 st.rerun()
 
 # ----------------------------------------------------
-# 4. DESCARGAR EXCEL
+# 4. DESCARGAR EXCEL PROFESIONAL (Con Tablas Resumen y Gráfico Integrado)
 # ----------------------------------------------------
-elif menu_opcion == "📥 Descargar Excel":
-    st.header("📥 Descargar Reporte de Ventas en Excel")
+elif menu_opcion == "📥 Descargar Excel Profesional":
+    st.header("📥 Descargar Reporte de Ventas Avanzado en Excel")
     
     if df_ventas.empty:
         st.warning("⚠️ No hay datos para exportar.")
     else:
-        st.markdown("Haz clic en el botón de abajo para descargar tu reporte completo con todas las ventas.")
+        st.markdown("Este reporte genera un archivo de Excel profesional estructurado con el detalle de ventas, la tabla resumen por producto y los ingresos totales del día listos para la administración.")
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_ventas.to_excel(writer, index=False, sheet_name='Ventas_DonaMery')
+            # 1. Hoja principal de detalle de ventas
+            df_ventas.to_excel(writer, index=False, sheet_name='Detalle_Ventas')
+            
+            # 2. Tabla resumen por producto con ingresos totales
+            resumen_prod = df_ventas.groupby('producto').agg(
+                Cantidad_Total=('cantidad', 'sum'),
+                Ingresos_Totales=('total', 'sum')
+            ).reset_index()
+            resumen_prod['Ingresos_Totales'] = resumen_prod['Ingresos_Totales'].round(2)
+            resumen_prod.to_excel(writer, index=False, sheet_name='Resumen_Por_Producto')
+            
+            # Obtener workbook para insertar el gráfico nativo de Excel y formato profesional
+            workbook = writer.book
+            
+            # Crear una hoja de resumen ejecutivo con los ingresos totales del día
+            ws_resumen = workbook.create_sheet(title="Cierre_Total")
+            ws_resumen.append(["BROSTERÍA DOÑA MERY - CIERRE DE INGRESOS"])
+            ws_resumen.append([])
+            ws_resumen.append(["Concepto", "Monto Total (Bs)"])
+            total_dia = df_ventas['total'].sum()
+            ws_resumen.append(["Ingresos Totales del Día", round(total_dia, 2)])
+            ws_resumen.append(["Total Tickets / Ventas", len(df_ventas)])
+
+            # Agregar un gráfico de barras integrado directamente en Excel
+            from openpyxl.chart import BarChart, Reference
+            chart = BarChart()
+            chart.type = "col"
+            chart.style = 10
+            chart.title = "Ingresos Totales por Producto (Bs)"
+            chart.y_axis.title = "Bolivianos (Bs)"
+            chart.x_axis.title = "Productos"
+
+            # Referencias para el gráfico basadas en la hoja 'Resumen_Por_Producto'
+            ws_prod_ref = workbook['Resumen_Por_Producto']
+            data = Reference(ws_prod_ref, min_col=2, min_row=1, max_row=len(resumen_prod) + 1)
+            cats = Reference(ws_prod_ref, min_col=1, min_row=2, max_row=len(resumen_prod) + 1)
+            
+            chart.add_data(data, titles_from_data=True)
+            chart.set_categories(cats)
+            
+            # Añadir el gráfico a la hoja de resumen ejecutivo
+            ws_resumen.add_chart(chart, "D2")
+
         excel_data = output.getvalue()
         
         st.download_button(
-            label="📊 Descargar Reporte en Excel (.xlsx)",
+            label="📊 Descargar Excel Profesional con Gráficos y Resumen (.xlsx)",
             data=excel_data,
-            file_name=f"ventas_dona_mery_{datetime.now(bolivia_tz).strftime('%Y-%m-%d_%H-%M')}.xlsx",
+            file_name=f"reporte_completo_donamery_{datetime.now(bolivia_tz).strftime('%Y-%m-%d_%H-%M')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
