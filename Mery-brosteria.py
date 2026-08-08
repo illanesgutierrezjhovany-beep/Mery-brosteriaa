@@ -55,5 +55,5 @@ if verificar_licencia():
 # ==========================================
 # AQUÍ VA TU SISTEMA DE VENTAS NORMAL
 # ==========================================
-st.title("🛒 Sistema de Ventas")
-st.write("Bienvenido, el sistema está operativo.")
+st.title("🛒 Sistema de Ventas (DOÑA MERY")
+st.write("Bienvenido, el sistema gratuito finalizo porfavor contactarse con el desarrollador")
