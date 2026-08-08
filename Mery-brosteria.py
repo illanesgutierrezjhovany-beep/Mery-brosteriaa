@@ -1,58 +1,64 @@
-import streamlit as st
 from datetime import datetime, timedelta
 import json
 import os
+import streamlit as st
 
 # --- CONFIGURACIÓN ---
 DIAS_PRUEBA = 10
 ARCHIVO_CONFIG = "licencia.json"
 
+
 def verificar_licencia():
-    if not os.path.exists(ARCHIVO_CONFIG):
-        # Crear fecha de inicio si es la primera vez
-        datos = {"fecha_instalacion": datetime.now().isoformat()}
-        with open(ARCHIVO_CONFIG, "w") as f:
-            json.dump(datos, f)
-        return False
-    
-    with open(ARCHIVO_CONFIG, "r") as f:
-        datos = json.load(f)
-    
-    fecha_instalacion = datetime.fromisoformat(datos["fecha_instalacion"])
-    if datetime.now() - fecha_instalacion > timedelta(days=DIAS_PRUEBA):
-        return True # Está expirado
+  if not os.path.exists(ARCHIVO_CONFIG):
+    datos = {"fecha_instalacion": datetime.now().isoformat()}
+    with open(ARCHIVO_CONFIG, "w") as f:
+      json.dump(datos, f)
     return False
+
+  with open(ARCHIVO_CONFIG, "r") as f:
+    datos = json.load(f)
+
+  fecha_instalacion = datetime.fromisoformat(datos["fecha_instalacion"])
+  if datetime.now() - fecha_instalacion > timedelta(days=DIAS_PRUEBA):
+    return True  # Está expirado
+  return False
+
 
 # --- BLOQUEO ---
 if verificar_licencia():
-    st.set_page_config(page_title="Acceso Restringido", page_icon="🔒")
-    
-    st.title("🔒 Sistema Bloqueado")
-    st.error("El periodo de prueba gratuita ha finalizado.")
-    
-    st.markdown("""
+  st.set_page_config(page_title="Prueba Finalizada", page_icon="🔒")
+
+  st.title("🔒 Prueba gratuita finalizada")
+  st.error("El tiempo de uso gratuito de este software ha concluido.")
+
+  st.markdown("""
     ---
     ### ⚠️ Aviso importante
-    El acceso a este software ha sido restringido debido a que el tiempo de uso gratuito ha concluido.
-    
-    Si usted desea **habilitar el software** de forma permanente o extender su licencia, por favor **comuníquese con el desarrollador** a cargo.
+    Si desea habilitar el software, por favor **comuníquese con el desarrollador** para activar su licencia.
     """)
-    
-    # Botón de contacto
-    st.markdown("""
+
+  # Cambia el número por el tuyo en formato internacional
+  whatsapp_url = (
+      "https://wa.me/591XXXXXXXX?text=Hola,%20necesito%20habilitar%20el%20software"
+      "porque%20la%20prueba%20gratuita%20finalizó."
+  )
+  st.markdown(
+      f"""
     <div style="text-align: center; margin-top: 30px;">
-        <a href="https://wa.me/591XXXXXXXX?text=Hola,%20quisiera%20habilitar%20el%20software%20de%20ventas%20que%20ya%20venció." 
-           style="background-color: #007bff; color: white; padding: 15px 30px; 
+        <a href="{whatsapp_url}" target="_blank" 
+           style="background-color: #25D366; color: white; padding: 15px 30px; 
            text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px;">
-           📞 Contactar al Desarrollador
+           💬 Comuníquese con el desarrollador
         </a>
     </div>
-    """, unsafe_allow_html=True)
-    
-    st.stop() # Esto detiene todo el código que sigue
+    """,
+      unsafe_allow_html=True,
+  )
+
+  st.stop()  # Detiene la ejecución para que no se vea el sistema
 
 # ==========================================
-# AQUÍ COMIENZA TU SISTEMA (SOLO SE VE SI NO ESTÁ BLOQUEADO)
+# AQUÍ COMIENZA TU SISTEMA DE VENTAS
 # ==========================================
 st.title("🛒 Sistema de Ventas")
 st.write("Bienvenido, el sistema está operativo.")
