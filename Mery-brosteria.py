@@ -20,45 +20,40 @@ def verificar_licencia():
 
   fecha_instalacion = datetime.fromisoformat(datos["fecha_instalacion"])
   if datetime.now() - fecha_instalacion > timedelta(days=DIAS_PRUEBA):
-    return True  # Está expirado
+    return True
   return False
 
 
 # --- BLOQUEO ---
 if verificar_licencia():
-  st.set_page_config(page_title="Prueba Finalizada", page_icon="🔒")
+  st.set_page_config(page_title="Sistema Bloqueado", page_icon="🔒")
 
-  st.title("🔒 Prueba gratuita finalizada")
-  st.error("El tiempo de uso gratuito de este software ha concluido.")
+  st.error(
+      "El sistema de uso gratuito finalizó. Por favor contactarse con el"
+      " desarrollador."
+  )
 
-  st.markdown("""
-    ---
-    ### ⚠️ Aviso importante
-    Si desea habilitar el software, por favor **comuníquese con el desarrollador** para activar su licencia.
-    """)
-
-  # Cambia el número por el tuyo en formato internacional
   whatsapp_url = (
-      "https://wa.me/591XXXXXXXX?text=Hola,%20necesito%20habilitar%20el%20software"
-      "porque%20la%20prueba%20gratuita%20finalizó."
+      "https://wa.me/591XXXXXXXX?text=Hola,%20el%20sistema%20de%20uso%20gratuito"
+      "%20finalizó,%20necesito%20contactarme%20para%20habilitarlo."
   )
   st.markdown(
       f"""
-    <div style="text-align: center; margin-top: 30px;">
+    <div style="text-align: center; margin-top: 40px;">
         <a href="{whatsapp_url}" target="_blank" 
            style="background-color: #25D366; color: white; padding: 15px 30px; 
            text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px;">
-           💬 Comuníquese con el desarrollador
+           💬 Contactarse con el desarrollador
         </a>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-  st.stop()  # Detiene la ejecución para que no se vea el sistema
+  st.stop()
 
 # ==========================================
-# AQUÍ COMIENZA TU SISTEMA DE VENTAS
+# AQUÍ VA TU SISTEMA DE VENTAS NORMAL
 # ==========================================
 st.title("🛒 Sistema de Ventas")
 st.write("Bienvenido, el sistema está operativo.")
